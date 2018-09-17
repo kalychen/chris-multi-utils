@@ -37,6 +37,27 @@ public class PoiUtils {
     }
 
     /**
+     * 导出到输出流OutputStream
+     * @param workSheetInfo
+     * @param os
+     * @param <T>
+     * @return
+     */
+    public static <T> Boolean exportToXlsOutputStream(WorkSheetInfo<T> workSheetInfo, OutputStream os) {
+        //创建一个工作簿
+        HSSFWorkbook workbook = new HSSFWorkbook();
+        //向工作簿天机按工作表
+        addToXls(workSheetInfo, workbook);
+        try {
+            workbook.write(os);
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
      * 把包含工作表信息的集合写入到xls表格
      *
      * @param workSheetInfoSet
@@ -53,6 +74,27 @@ public class PoiUtils {
         return saveXlsFile(workbook, saveFileName);
     }
 
+    /**
+     * 导出到输出流OutputStream
+     * @param workSheetInfoSet
+     * @param os
+     * @return
+     */
+    public static Boolean exportToXlsOutputStream(Set<WorkSheetInfo> workSheetInfoSet, OutputStream os) {
+        //创建一个工作簿
+        HSSFWorkbook workbook = new HSSFWorkbook();
+        //循环向工作簿添加工作表
+        for (WorkSheetInfo workSheetInfo : workSheetInfoSet) {
+            addToXls(workSheetInfo, workbook);
+        }
+        try {
+            workbook.write(os);
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
     /**
      * 向工作簿添加一张表
      *

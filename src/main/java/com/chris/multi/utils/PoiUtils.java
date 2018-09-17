@@ -1,8 +1,16 @@
 package com.chris.multi.utils;
 
 import com.chris.multi.model.WorkSheetInfo;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Set;
 
@@ -13,6 +21,56 @@ import java.util.Set;
  */
 
 public class PoiUtils {
+    public static <T> Boolean exportToXls(WorkSheetInfo<T> workSheetInfo) {
+        String saveFileName = "G:/temp/chris-test-02.xls";
+        Class<T> clazz = workSheetInfo.getClazz();
+        Field[] fields = clazz.getDeclaredFields();
+        try {
+            //创建一个工作簿
+            HSSFWorkbook workbook = new HSSFWorkbook();
+            //创建工作表
+            Sheet sheet = workbook.createSheet(workSheetInfo.getTitle());
+            //遍历字段填充表头
+            Row headRow = sheet.createRow(0);
+            int headColIndex = 0;
+            for (Field field : fields) {
+                field.setAccessible(true);
+                String fieldname = field.getName();
+                field.setAccessible(false);
+                headRow.createCell(headColIndex++).setCellValue(fieldname);
+            }
+            //数据
+            List<T> dataList = workSheetInfo.getDataList();
+            for (int rowIndex = 1, len = dataList.size(); rowIndex <= len; rowIndex++) {
+                Object obj = dataList.get(rowIndex - 1);
+                Row dataRow = sheet.createRow(rowIndex);
+//                dataRow.createCell(0).setCellValue(user.id);
+//                dataRow.createCell(1).setCellValue(user.name);
+//                dataRow.createCell(2).setCellValue(user.age);
+//                dataRow.createCell(3).setCellValue(user.address);
+                //运用反射，把各个字段的值填充到xls表格
+                int colIndex = 0;
+                for (Field field : fields) {
+                    field.setAccessible(true);
+                    Object value = field.get(obj);
+                    field.setAccessible(false);
+                    dataRow.createCell(colIndex++).setCellValue(String.valueOf(value));
+                }
+            }
+            //创建输出流
+            OutputStream os = new FileOutputStream(new File(saveFileName));
+            workbook.write(os);
+            workbook.close();
+            return true;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     /**
      * 把包含工作表信息的集合写入到xls表格
      *
@@ -60,6 +118,7 @@ public class PoiUtils {
 
     /**
      * 根据给定的类的集合，从工作簿中读取匹配的数据，并返回一个对象集合
+     *
      * @param workbook
      * @param clazz
      * @return

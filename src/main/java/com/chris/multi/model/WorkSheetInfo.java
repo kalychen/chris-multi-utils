@@ -12,15 +12,22 @@ public class WorkSheetInfo<T> {
     private String author;//作者
     private Long time;//操作时间
     private List<T> dataList;//工作表中每行的数据
+    private Class<T> clazz;
 
     public WorkSheetInfo() {
+
     }
 
-    public WorkSheetInfo(String title, String author, Long time, List<T> dataList) {
+    public WorkSheetInfo(Class<T> clazz) {
+        this.clazz = clazz;
+    }
+
+    public WorkSheetInfo(String title, String author, Long time, List<T> dataList, Class<T> clazz) {
         this.title = title;
         this.author = author;
         this.time = time;
         this.dataList = dataList;
+        this.clazz = clazz;
     }
 
     public String getTitle() {
@@ -53,5 +60,13 @@ public class WorkSheetInfo<T> {
 
     public void setDataList(List<T> dataList) {
         this.dataList = dataList;
+    }
+
+    public Class<T> getClazz() {
+        return clazz;
+    }
+
+    public void setClazz(Class<T> clazz) {
+        this.clazz = clazz;
     }
 }

@@ -1,6 +1,7 @@
 package com.chris.multi.utils;
 
 import com.chris.multi.model.WorkSheetInfo;
+import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -10,6 +11,8 @@ import org.apache.poi.ss.usermodel.Workbook;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -38,6 +41,7 @@ public class PoiUtils {
 
     /**
      * 导出到输出流OutputStream
+     *
      * @param workSheetInfo
      * @param os
      * @param <T>
@@ -76,6 +80,7 @@ public class PoiUtils {
 
     /**
      * 导出到输出流OutputStream
+     *
      * @param workSheetInfoSet
      * @param os
      * @return
@@ -95,6 +100,7 @@ public class PoiUtils {
         }
         return false;
     }
+
     /**
      * 向工作簿添加一张表
      *
@@ -172,6 +178,55 @@ public class PoiUtils {
     }
 
     /**
+     * 从文件读取xls表格内容
+     *
+     * @param xlsFileName
+     * @param sheetIndex
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    public static <T> List<T> readFromXls(String xlsFileName, int sheetIndex, Class<T> clazz) {
+        File file = new File(xlsFileName);
+        if (!file.exists()) {
+            return null;
+        }
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+            return readFromXls(is, sheetIndex, clazz);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                is.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 从输入流中读取表格内容
+     *
+     * @param is
+     * @param sheetIndex
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    public static <T> List<T> readFromXls(InputStream is, int sheetIndex, Class<T> clazz) {
+        try {
+            HSSFWorkbook workbook = new HSSFWorkbook(is);
+            return readFromXls(workbook, sheetIndex, clazz);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
      * 从工作簿读取指定数据匹配的数据
      * 不用指定哪张表，系统会自动根据字段名匹配数据，并将匹配到的数据全部读出来
      *
@@ -189,9 +244,101 @@ public class PoiUtils {
         Field[] fields = clazz.getDeclaredFields();
         //类型不匹配则退出
         if (!matchClass(fields, headRow)) {
+            System.out.println("类型不匹配");
             return null;
         }
-        // 遍历取出数据 todo 如何确定有效数据的最大行
+        System.out.println("找到合适的表");
+        // 遍历取出数据
+        List<T> objList = new ArrayList<>();
+        int length = fields.length;
+        for (int rowIndex = 1; rowIndex < 65535; rowIndex++) {
+            HSSFRow dataRow = sheet.getRow(rowIndex);
+            //找到空行 这里要求有效数据中间不能出现空行
+            if (dataRow == null) {
+                System.out.println("找到" + (rowIndex - 1) + "条数据");
+                break;
+            }
+            T obj = getInstance(clazz);
+            if (obj == null) {
+                continue;
+            }
+            //遍历字段赋值
+            for (int colIndex = 0; colIndex < length; colIndex++) {
+                Field field = fields[colIndex];
+                HSSFCell cell = dataRow.getCell(colIndex);
+                field.setAccessible(true);
+                setValueFromCell(obj, field, cell);
+                field.setAccessible(false);
+            }
+            objList.add(obj);
+        }
+        return objList;
+    }
+
+    /**
+     * 从一个xls单元格给一个对象的字段赋值
+     *
+     * @param obj
+     * @param field
+     * @param cell
+     * @param <T>
+     */
+    private static <T> void setValueFromCell(T obj, Field field, HSSFCell cell) {
+        String typeName = field.getType().getName();
+        try {
+            if (int.class.getName().equals(typeName) || Integer.class.getName().equals(typeName)) {
+                field.set(obj, (int) cell.getNumericCellValue());
+                return;
+            }
+            if (short.class.getName().equals(typeName) || Short.class.getName().equals(typeName)) {
+                field.set(obj, (short) cell.getNumericCellValue());
+                return;
+            }
+            if (long.class.getName().equals(typeName) || Long.class.getName().equals(typeName)) {
+                field.set(obj, (long) cell.getNumericCellValue());
+                return;
+            }
+            if (float.class.getName().equals(typeName) || Float.class.getName().equals(typeName)) {
+                field.set(obj, (float) cell.getNumericCellValue());
+                return;
+            }
+            if (double.class.getName().equals(typeName) || Double.class.getName().equals(typeName)) {
+                field.set(obj, cell.getNumericCellValue());
+                return;
+            }
+
+            if (boolean.class.getName().equals(typeName) || Boolean.class.getName().equals(typeName)) {
+                field.set(obj, cell.getBooleanCellValue());
+                return;
+            }
+            if (Date.class.getName().equals(typeName)) {
+                field.set(obj, cell.getDateCellValue());
+                return;
+            }
+            //如果上面都不匹配，就全部按照字符串进行读取
+            field.set(obj, cell.getStringCellValue());
+            return;
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    /**
+     * 给一个类创建一个实例
+     *
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    private static <T> T getInstance(Class<T> clazz) {
+        try {
+            return clazz.newInstance();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 

@@ -16,7 +16,14 @@ public class MainTest {
     private static final String saveFileName = "F:/temp1/chris-test-05.xls";
 
     public static void main(String[] args) {
-        test3();
+        test4();
+    }
+
+    private static void test4() {
+        List<StuModel> stuModels = PoiUtils.readFromXls(saveFileName, 0, StuModel.class);
+        for (StuModel stu : stuModels) {
+            System.out.println(stu.getId() + "-->" + stu.getName() + "-->" + stu.getGrade() + "-->" + stu.getSchoolClass() + "-->" + stu.getEnglishScore());
+        }
     }
 
     private static void test3() {

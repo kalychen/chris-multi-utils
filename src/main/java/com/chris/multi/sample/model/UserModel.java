@@ -1,4 +1,4 @@
-package com.chris.multi.model;
+package com.chris.multi.sample.model;
 
 import com.chris.multi.poi.xls.XlsColumn;
 import com.chris.multi.poi.xls.XlsSheet;

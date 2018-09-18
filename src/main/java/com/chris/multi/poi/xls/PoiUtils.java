@@ -134,23 +134,25 @@ public class PoiUtils {
             }
             //数据
             List<T> dataList = workSheetInfo.getDataList();
-            for (int rowIndex = 1, len = dataList.size(); rowIndex <= len; rowIndex++) {
-                Object obj = dataList.get(rowIndex - 1);
-                Row dataRow = sheet.createRow(rowIndex);
-                //运用反射，把各个字段的值填充到xls表格
-                int colIndex = 0;
-                for (Field field : fields) {
-                    field.setAccessible(true);
-                    Object value = field.get(obj);
-                    if ((value instanceof Integer) ||
-                            (value instanceof Long) ||
-                            (value instanceof Double) ||
-                            (value instanceof Float)) {
-                        dataRow.createCell(colIndex++).setCellValue(Integer.parseInt(String.valueOf(value)));
-                    } else {
-                        dataRow.createCell(colIndex++).setCellValue(String.valueOf(value));
+            if (dataList!=null) {
+                for (int rowIndex = 1, len = dataList.size(); rowIndex <= len; rowIndex++) {
+                    Object obj = dataList.get(rowIndex - 1);
+                    Row dataRow = sheet.createRow(rowIndex);
+                    //运用反射，把各个字段的值填充到xls表格
+                    int colIndex = 0;
+                    for (Field field : fields) {
+                        field.setAccessible(true);
+                        Object value = field.get(obj);
+                        if ((value instanceof Integer) ||
+                                (value instanceof Long) ||
+                                (value instanceof Double) ||
+                                (value instanceof Float)) {
+                            dataRow.createCell(colIndex++).setCellValue(Integer.parseInt(String.valueOf(value)));
+                        } else {
+                            dataRow.createCell(colIndex++).setCellValue(String.valueOf(value));
+                        }
+                        field.setAccessible(false);
                     }
-                    field.setAccessible(false);
                 }
             }
             return true;

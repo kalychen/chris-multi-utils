@@ -1,5 +1,7 @@
-import com.chris.multi.model.StuModel;
-import com.chris.multi.model.UserModel;
+package com.chris.multi.sample;
+
+import com.chris.multi.sample.model.StuModel;
+import com.chris.multi.sample.model.UserModel;
 import com.chris.multi.poi.xls.WorkSheetInfo;
 import com.chris.multi.poi.xls.PoiUtils;
 
@@ -13,10 +15,15 @@ import java.util.*;
  */
 
 public class MainTest {
-    private static final String saveFileName = "G:/temp1/chris-test-05.xls";
+    private static final String saveFileName = "G:/temp1/chris-test-06.xls";
 
     public static void main(String[] args) {
-        test3();
+        outTemplate();
+    }
+
+    //输出表模板
+    private static void outTemplate() {
+        test3();//只要数据为空，生成的就是只有表头的表模板
     }
 
     private static void test4() {
@@ -64,7 +71,7 @@ public class MainTest {
         workSheetInfo.setTitle("学生表");
         workSheetInfo.setAuthor("Chris Chen");
         workSheetInfo.setTime(System.currentTimeMillis());
-        workSheetInfo.setDataList(stuList);
+        //workSheetInfo.setDataList(stuList);
 
         return workSheetInfo;
     }
@@ -78,7 +85,7 @@ public class MainTest {
         workSheetInfo.setTitle("用户表2");
         workSheetInfo.setAuthor("Chris Chen");
         workSheetInfo.setTime(System.currentTimeMillis());
-        workSheetInfo.setDataList(userList);
+        //workSheetInfo.setDataList(userList);
 
         return workSheetInfo;
     }

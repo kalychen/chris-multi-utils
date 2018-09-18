@@ -119,18 +119,7 @@ public class PoiUtils {
             int headColIndex = 0;
             for (Field field : fields) {
                 //获取字段注解
-                XlsColumn xlsColumns = field.getAnnotation(XlsColumn.class);
-                String colName = null;//列名
-                if (xlsColumns != null) {
-                    //如果注解不为空且value有值，将value作为列名
-                    colName = xlsColumns.value();
-                }
-                //如果cloName仍为空，则以字段名为列名
-                if (colName == null || "".equals(colName)) {
-                    field.setAccessible(true);
-                    colName = field.getName();
-                    field.setAccessible(false);
-                }
+                String colName = getXlsColumnName(field);
                 headRow.createCell(headColIndex++).setCellValue(colName);
             }
             //数据
@@ -161,6 +150,27 @@ public class PoiUtils {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /**
+     * 获取字段列名
+     * @param field
+     * @return
+     */
+    private static String getXlsColumnName(Field field) {
+        XlsColumn xlsColumns = field.getAnnotation(XlsColumn.class);
+        String colName = null;//列名
+        if (xlsColumns != null) {
+            //如果注解不为空且value有值，将value作为列名
+            colName = xlsColumns.value();
+        }
+        //如果cloName仍为空，则以字段名为列名
+        if (colName == null || "".equals(colName)) {
+            field.setAccessible(true);
+            colName = field.getName();
+            field.setAccessible(false);
+        }
+        return colName;
     }
 
     /**

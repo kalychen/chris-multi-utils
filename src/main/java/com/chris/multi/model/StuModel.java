@@ -1,16 +1,24 @@
 package com.chris.multi.model;
 
+import com.chris.multi.poi.xls.XlsColumn;
+import com.chris.multi.poi.xls.XlsSheet;
+
 /**
  * Created by Chris Chen
  * 2018/09/17
  * Explain:
  */
-
+@XlsSheet(value = "学生表")
 public class StuModel {
+    @XlsColumn("编号")
     private int id;
+    @XlsColumn("姓名")
     private String name;
+    @XlsColumn("年级")
     private String grade;
+    @XlsColumn("班号")
     private String schoolClass;
+    @XlsColumn("英语科成绩")
     private int englishScore;
 
     public StuModel() {

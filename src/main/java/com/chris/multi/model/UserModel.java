@@ -1,15 +1,22 @@
 package com.chris.multi.model;
 
+import com.chris.multi.poi.xls.XlsColumn;
+import com.chris.multi.poi.xls.XlsSheet;
+
 /**
  * Created by Chris Chen
  * 2018/09/17
  * Explain:
  */
-
+@XlsSheet("用户表")
 public class UserModel {
+    @XlsColumn("编号")
     public int id;
+    @XlsColumn("姓名")
     public String name;
+    @XlsColumn("年龄")
     public int age;
+    @XlsColumn("地址")
     public String address;
 
     public UserModel() {

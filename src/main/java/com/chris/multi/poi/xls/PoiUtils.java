@@ -1,6 +1,5 @@
-package com.chris.multi.utils;
+package com.chris.multi.poi.xls;
 
-import com.chris.multi.model.WorkSheetInfo;
 import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
@@ -118,10 +117,20 @@ public class PoiUtils {
             Row headRow = sheet.createRow(0);
             int headColIndex = 0;
             for (Field field : fields) {
-                field.setAccessible(true);
-                String fieldname = field.getName();
-                field.setAccessible(false);
-                headRow.createCell(headColIndex++).setCellValue(fieldname);
+                //获取字段注解
+                XlsColumn xlsColumns = field.getAnnotation(XlsColumn.class);
+                String colName = null;//列名
+                if (xlsColumns != null) {
+                    //如果注解不为空且value有值，将value作为列名
+                    colName = xlsColumns.value();
+                }
+                //如果cloName仍为空，则以字段名为列名
+                if (colName == null || "".equals(colName)) {
+                    field.setAccessible(true);
+                    colName = field.getName();
+                    field.setAccessible(false);
+                }
+                headRow.createCell(headColIndex++).setCellValue(colName);
             }
             //数据
             List<T> dataList = workSheetInfo.getDataList();
@@ -352,7 +361,16 @@ public class PoiUtils {
     private static boolean matchClass(Field[] fields, HSSFRow headRow) {
         int length = fields.length;
         for (int i = 0; i < length; i++) {
-            if (!headRow.getCell(i).getStringCellValue().equalsIgnoreCase(fields[i].getName())) {
+            String colName = null;
+            Field field = fields[i];
+            XlsColumn xlsColumn = field.getAnnotation(XlsColumn.class);
+            if (xlsColumn != null) {
+                colName = xlsColumn.value();
+            }
+            if (colName == null || "".equals(colName)) {
+                colName = field.getName();
+            }
+            if (!headRow.getCell(i).getStringCellValue().equalsIgnoreCase(colName)) {
                 return false;
             }
         }

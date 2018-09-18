@@ -1,7 +1,7 @@
 import com.chris.multi.model.StuModel;
 import com.chris.multi.model.UserModel;
-import com.chris.multi.model.WorkSheetInfo;
-import com.chris.multi.utils.PoiUtils;
+import com.chris.multi.poi.xls.WorkSheetInfo;
+import com.chris.multi.poi.xls.PoiUtils;
 
 import java.io.*;
 import java.util.*;
@@ -13,10 +13,10 @@ import java.util.*;
  */
 
 public class MainTest {
-    private static final String saveFileName = "F:/temp1/chris-test-05.xls";
+    private static final String saveFileName = "G:/temp1/chris-test-05.xls";
 
     public static void main(String[] args) {
-        test4();
+        test3();
     }
 
     private static void test4() {

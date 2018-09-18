@@ -80,17 +80,18 @@ public class PoiUtils {
     /**
      * 导出到输出流OutputStream
      *
-     * @param workSheetInfoSet
+     * @param workSheetInfoList
      * @param os
      * @return
      */
-    public static Boolean exportToXlsOutputStream(Set<WorkSheetInfo> workSheetInfoSet, OutputStream os) {
+    public static Boolean exportToXlsOutputStream(List<WorkSheetInfo> workSheetInfoList, OutputStream os) {
         //创建一个工作簿
         HSSFWorkbook workbook = new HSSFWorkbook();
         //循环向工作簿添加工作表
-        for (WorkSheetInfo workSheetInfo : workSheetInfoSet) {
+        for (WorkSheetInfo workSheetInfo : workSheetInfoList) {
             addToXls(workSheetInfo, workbook);
         }
+        //workSheetInfoList.stream().forEach(workbookInfo -> addToXls(workbookInfo, workbook));//有中文乱码
         try {
             workbook.write(os);
             return true;
@@ -112,7 +113,7 @@ public class PoiUtils {
         Field[] fields = clazz.getDeclaredFields();
         try {
             //创建工作表
-            Sheet sheet = workbook.createSheet(workSheetInfo.getTitle());
+            Sheet sheet = workbook.createSheet(buildSheetName(workSheetInfo));
             //遍历字段填充表头
             Row headRow = sheet.createRow(0);
             int headColIndex = 0;
@@ -134,7 +135,7 @@ public class PoiUtils {
             }
             //数据
             List<T> dataList = workSheetInfo.getDataList();
-            if (dataList!=null) {
+            if (dataList != null) {
                 for (int rowIndex = 1, len = dataList.size(); rowIndex <= len; rowIndex++) {
                     Object obj = dataList.get(rowIndex - 1);
                     Row dataRow = sheet.createRow(rowIndex);
@@ -160,6 +161,19 @@ public class PoiUtils {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /**
+     * 创建工作表的名称
+     *
+     * @param workSheetInfo
+     * @param <T>
+     * @return
+     */
+    private static <T> String buildSheetName(WorkSheetInfo<T> workSheetInfo) {
+        int pageIndex = workSheetInfo.getPageIndex();
+        String title = workSheetInfo.getTitle();
+        return pageIndex == -1 ? title : title + "(" + pageIndex + ")";
     }
 
     /**
@@ -190,6 +204,7 @@ public class PoiUtils {
 
     /**
      * 从文件读取xls表格内容
+     * 指定表索引号
      *
      * @param xlsFileName
      * @param sheetIndex
@@ -197,7 +212,7 @@ public class PoiUtils {
      * @param <T>
      * @return
      */
-    public static <T> List<T> readFromXls(String xlsFileName, int sheetIndex, Class<T> clazz) {
+    public static <T> List<T> readFromXlsFile(String xlsFileName, int sheetIndex, Class<T> clazz) {
         File file = new File(xlsFileName);
         if (!file.exists()) {
             return null;
@@ -205,7 +220,37 @@ public class PoiUtils {
         InputStream is = null;
         try {
             is = new FileInputStream(file);
-            return readFromXls(is, sheetIndex, clazz);
+            return readFromInputStream(is, sheetIndex, clazz);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                is.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 从文件读取xls表格内容
+     * 匹配所有表
+     *
+     * @param xlsFileName
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    public static <T> List<T> readFromXlsFile(String xlsFileName, Class<T> clazz) {
+        File file = new File(xlsFileName);
+        if (!file.exists()) {
+            return null;
+        }
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+            return readFromInputStream(is, clazz);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } finally {
@@ -220,6 +265,7 @@ public class PoiUtils {
 
     /**
      * 从输入流中读取表格内容
+     * 指定表索引号
      *
      * @param is
      * @param sheetIndex
@@ -227,10 +273,29 @@ public class PoiUtils {
      * @param <T>
      * @return
      */
-    public static <T> List<T> readFromXls(InputStream is, int sheetIndex, Class<T> clazz) {
+    public static <T> List<T> readFromInputStream(InputStream is, int sheetIndex, Class<T> clazz) {
         try {
             HSSFWorkbook workbook = new HSSFWorkbook(is);
-            return readFromXls(workbook, sheetIndex, clazz);
+            return readFromWorkbook(workbook, sheetIndex, clazz);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * 从输入流中读取表格内容
+     * 匹配所有表
+     *
+     * @param is
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    public static <T> List<T> readFromInputStream(InputStream is, Class<T> clazz) {
+        try {
+            HSSFWorkbook workbook = new HSSFWorkbook(is);
+            return readFromWorkbook(workbook, clazz);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -239,7 +304,29 @@ public class PoiUtils {
 
     /**
      * 从工作簿读取指定数据匹配的数据
-     * 不用指定哪张表，系统会自动根据字段名匹配数据，并将匹配到的数据全部读出来
+     * 系统遍历工作簿，将类型匹配的工作表的数据全部读取出来
+     *
+     * @param workbook
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    public static <T> List<T> readFromWorkbook(HSSFWorkbook workbook, Class<T> clazz) {
+        List<T> dataList = new ArrayList<>();
+        //获取工作簿中表的总数
+        int count = workbook.getNumberOfSheets();
+        for (int sheetIndex = 0; sheetIndex < count; sheetIndex++) {
+            List<T> list = readFromWorkbook(workbook, sheetIndex, clazz);
+            if (list != null) {
+                dataList.addAll(list);
+            }
+        }
+        return dataList;
+    }
+
+    /**
+     * 从工作簿读取指定数据匹配的数据
+     * 系统会自动根据字段名匹配数据，并将匹配到的数据全部读出来
      *
      * @param workbook
      * @param sheetIndex
@@ -247,7 +334,7 @@ public class PoiUtils {
      * @param <T>
      * @return
      */
-    public static <T> List<T> readFromXls(HSSFWorkbook workbook, int sheetIndex, Class<T> clazz) {
+    public static <T> List<T> readFromWorkbook(HSSFWorkbook workbook, int sheetIndex, Class<T> clazz) {
         //获得工作表
         HSSFSheet sheet = workbook.getSheetAt(sheetIndex);
         //检验结构是否匹配
@@ -255,18 +342,18 @@ public class PoiUtils {
         Field[] fields = clazz.getDeclaredFields();
         //类型不匹配则退出
         if (!matchClass(fields, headRow)) {
-            System.out.println("类型不匹配");
             return null;
         }
-        System.out.println("找到合适的表");
+        //System.out.println("Found match sheets.");
         // 遍历取出数据
         List<T> objList = new ArrayList<>();
         int length = fields.length;
-        for (int rowIndex = 1; rowIndex < 65535; rowIndex++) {
+        int maxLines = getMaxLines(clazz);
+        for (int rowIndex = 1; rowIndex < maxLines; rowIndex++) {
             HSSFRow dataRow = sheet.getRow(rowIndex);
             //找到空行 这里要求有效数据中间不能出现空行
             if (dataRow == null) {
-                System.out.println("找到" + (rowIndex - 1) + "条数据");
+                System.out.println("found " + (rowIndex - 1) + " records.");
                 break;
             }
             T obj = getInstance(clazz);
@@ -284,6 +371,26 @@ public class PoiUtils {
             objList.add(obj);
         }
         return objList;
+    }
+
+    /**
+     * 获取设定的每张表最大数据行数
+     *
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    private static <T> int getMaxLines(Class<T> clazz) {
+        int maxLines = 65534;
+        XlsSheet xlsSheet = clazz.getAnnotation(XlsSheet.class);
+        if (xlsSheet == null) {
+            return maxLines;
+        }
+        int ml = xlsSheet.maxLines();
+        if (ml > 0 && ml < 65534) {
+            return ml;
+        }
+        return maxLines;
     }
 
     /**
@@ -386,7 +493,7 @@ public class PoiUtils {
      * @param clazz
      * @return
      */
-    public static Set<List<Object>> readFromXls(Workbook workbook, Set<Class<?>> clazz) {
+    public static Set<List<Object>> readFromWorkbook(Workbook workbook, Set<Class<?>> clazz) {
         return null;
     }
 

@@ -9,64 +9,95 @@ import java.util.List;
  */
 public class WorkSheetInfo<T> {
     private String title;//工作表名称
+    private int pageIndex = -1;//分页的页码 不设置则为-1
     private String author;//作者
     private Long time;//操作时间
     private List<T> dataList;//工作表中每行的数据
     private Class<T> clazz;
 
-    public WorkSheetInfo() {
+    private static final int MAXLINES = 65534;
+
+    private WorkSheetInfo() {
 
     }
 
-    public WorkSheetInfo(Class<T> clazz) {
-        this.clazz = clazz;
-    }
-
-    public WorkSheetInfo(String title, String author, Long time, List<T> dataList, Class<T> clazz) {
-        this.title = title;
-        this.author = author;
-        this.time = time;
-        this.dataList = dataList;
-        this.clazz = clazz;
+    public static <T> WorkSheetInfo get(Class<T> clazz) {
+        WorkSheetInfo<T> workSheetInfo = new WorkSheetInfo<>();
+        workSheetInfo.clazz = clazz;
+        return workSheetInfo;
     }
 
     public String getTitle() {
         return title;
     }
 
-    public void setTitle(String title) {
+    public WorkSheetInfo setTitle(String title) {
         this.title = title;
+        return this;
+    }
+
+    public int getPageIndex() {
+        return pageIndex;
+    }
+
+    public WorkSheetInfo setPageIndex(int pageIndex) {
+        this.pageIndex = pageIndex;
+        return this;
     }
 
     public String getAuthor() {
         return author;
     }
 
-    public void setAuthor(String author) {
+    public WorkSheetInfo setAuthor(String author) {
         this.author = author;
+        return this;
     }
 
     public Long getTime() {
         return time;
     }
 
-    public void setTime(Long time) {
+    public WorkSheetInfo setTime(Long time) {
         this.time = time;
+        return this;
     }
 
     public List<T> getDataList() {
         return dataList;
     }
 
-    public void setDataList(List<T> dataList) {
+    public WorkSheetInfo setDataList(List<T> dataList) {
+        if (dataList.size() > getMaxLines()) {
+            throw new RuntimeException("One page can not contains data than " + MAXLINES + "lines.");
+        }
         this.dataList = dataList;
+        return this;
     }
 
     public Class<T> getClazz() {
         return clazz;
     }
 
-    public void setClazz(Class<T> clazz) {
+    public WorkSheetInfo setClazz(Class<T> clazz) {
         this.clazz = clazz;
+        return this;
+    }
+
+    /**
+     * 获取设定的最大行数
+     *
+     * @return
+     */
+    private int getMaxLines() {
+        XlsSheet xlsSheet = getClazz().getAnnotation(XlsSheet.class);
+        if (xlsSheet == null) {
+            return MAXLINES;
+        }
+        int ml = xlsSheet.maxLines();
+        if (ml > 0 && ml < 65534) {
+            return ml;
+        }
+        return MAXLINES;
     }
 }

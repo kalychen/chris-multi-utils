@@ -16,6 +16,8 @@ public class XlsWorkBookInfo {
     private Timestamp createTime;
     private Timestamp lastAccessTime;
 
+    private XlsSetupAdapter xlsSetupAdapter;//细节设置适配器
+
     private List<XlsWorkSheetInfo> xlsWorkSheetInfoList;
 
     public String getName() {
@@ -64,5 +66,13 @@ public class XlsWorkBookInfo {
 
     public void setXlsWorkSheetInfoList(List<XlsWorkSheetInfo> xlsWorkSheetInfoList) {
         this.xlsWorkSheetInfoList = xlsWorkSheetInfoList;
+    }
+
+    public XlsSetupAdapter getXlsSetupAdapter() {
+        return xlsSetupAdapter;
+    }
+
+    public void setXlsSetupAdapter(XlsSetupAdapter xlsSetupAdapter) {
+        this.xlsSetupAdapter = xlsSetupAdapter;
     }
 }

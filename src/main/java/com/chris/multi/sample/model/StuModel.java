@@ -10,11 +10,11 @@ import com.chris.multi.poi.xls.XlsSheet;
  */
 @XlsSheet(value = "学生表")
 public class StuModel {
-    @XlsColumn("编号")
+    @XlsColumn(value = "编号",width = 10)
     private int id;
-    @XlsColumn("姓名")
+    @XlsColumn(value = "姓名",width = 6)
     private String name;
-    @XlsColumn("年级")
+    @XlsColumn(value = "年级",width = 6)
     private String grade;
     @XlsColumn("班号")
     private String schoolClass;

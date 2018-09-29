@@ -10,13 +10,13 @@ import com.chris.multi.poi.xls.XlsSheet;
  */
 @XlsSheet("用户表")
 public class UserModel {
-    @XlsColumn("编号")
+    @XlsColumn(value = "编号",width = 10)
     public int id;
-    @XlsColumn("姓名")
+    @XlsColumn(value = "姓名",width = 6)
     public String name;
     @XlsColumn("年龄")
     public int age;
-    @XlsColumn("地址")
+    @XlsColumn(value = "地址",width = 10)
     public String address;
 
     public UserModel() {

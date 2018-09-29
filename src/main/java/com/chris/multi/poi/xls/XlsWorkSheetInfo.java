@@ -14,6 +14,7 @@ public class XlsWorkSheetInfo<T> {
     private Long time;//操作时间
     private List<T> dataList;//工作表中每行的数据
     private Class<T> clazz;
+    private XlsSetupAdapter xlsSetupAdapter;//细节设置适配器
 
     private static final int MAXLINES = 65534;
 
@@ -99,5 +100,13 @@ public class XlsWorkSheetInfo<T> {
             return ml;
         }
         return MAXLINES;
+    }
+
+    public XlsSetupAdapter getXlsSetupAdapter() {
+        return xlsSetupAdapter;
+    }
+
+    public void setXlsSetupAdapter(XlsSetupAdapter xlsSetupAdapter) {
+        this.xlsSetupAdapter = xlsSetupAdapter;
     }
 }

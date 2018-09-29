@@ -1,12 +1,17 @@
 package com.chris.multi.sample;
 
+import com.chris.multi.poi.xls.XlsSetupAdapter;
 import com.chris.multi.poi.xls.XlsUtils;
 import com.chris.multi.poi.xls.XlsWorkSheetInfo;
 import com.chris.multi.sample.model.StuModel;
 import com.chris.multi.sample.model.UserModel;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Sheet;
 
 import java.io.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 /**
  * Created by Chris Chen
@@ -18,7 +23,8 @@ public class MainTest {
     private static final String saveFileName = "G:/temp1/chris-test-02.xls";
 
     public static void main(String[] args) {
-        outTemplate();
+//        outTemplate();
+        exportMultiSheet();
     }
 
     //输出表模板
@@ -66,13 +72,14 @@ public class MainTest {
 
         List<StuModel> stuList = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
-            stuList.add(new StuModel(i, "学生 page " + pageIndex +"->"+ i, "三年级", "五班", new Random().nextInt(100)));
+            stuList.add(new StuModel(i, "学生 page " + pageIndex + "->" + i, "三年级", "五班", new Random().nextInt(100)));
         }
         XlsWorkSheetInfo<StuModel> xlsWorkSheetInfo = XlsWorkSheetInfo.get(StuModel.class)
                 .setTitle("学生表")
                 .setPageIndex(pageIndex)
-                .setTime(System.currentTimeMillis());
-//                .setDataList(stuList);
+                .setTime(System.currentTimeMillis())
+                .setDataList(stuList);
+
 
         return xlsWorkSheetInfo;
     }
@@ -84,9 +91,26 @@ public class MainTest {
         }
         XlsWorkSheetInfo<UserModel> xlsWorkSheetInfo = XlsWorkSheetInfo.get(UserModel.class)
                 .setTitle("用户表")
-                .setTime(System.currentTimeMillis());
-//                .setDataList(userList);
+                .setTime(System.currentTimeMillis())
+                .setDataList(userList);
+
+        xlsWorkSheetInfo.setXlsSetupAdapter(getXlsSetupadapter());
 
         return xlsWorkSheetInfo;
+    }
+
+    //细节设置适配器
+    private static XlsSetupAdapter getXlsSetupadapter() {
+        return new XlsSetupAdapter() {
+            @Override
+            public void workBookSetup(HSSFWorkbook workbook) {
+                workbook.setActiveSheet(2);
+            }
+
+            @Override
+            public void workSheetSetup(Sheet workSheet) {
+                workSheet.setColumnWidth(2, 20);
+            }
+        };
     }
 }

@@ -5,6 +5,7 @@ import org.apache.poi.ss.usermodel.*;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.nio.charset.Charset;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -19,7 +20,7 @@ import java.util.Set;
  */
 
 public class XlsUtils {
-    private static final int CHAR_WIDTH = 512;
+    private static final int CHAR_WIDTH = 256;
 
     /**
      * 创建一个工作簿，并且添加一张表，写入数据
@@ -33,21 +34,8 @@ public class XlsUtils {
         //创建一个工作簿
         HSSFWorkbook workbook = new HSSFWorkbook();
         //向工作簿天机按工作表
-        addToXls(xlsWorkSheetInfo, workbook, null);
+        addToXls(xlsWorkSheetInfo, workbook);
         return saveXlsFile(workbook, saveFileName);
-    }
-
-    /**
-     * 导出到输出流OutputStream
-     * 不包含设置回调
-     *
-     * @param xlsWorkSheetInfo
-     * @param os
-     * @param <T>
-     * @return
-     */
-    public static <T> Boolean exportToXlsOutputStream(XlsWorkSheetInfo<T> xlsWorkSheetInfo, OutputStream os) {
-        return exportToXlsOutputStream(xlsWorkSheetInfo, os, null);
     }
 
     /**
@@ -59,14 +47,15 @@ public class XlsUtils {
      * @param <T>
      * @return
      */
-    public static <T> Boolean exportToXlsOutputStream(XlsWorkSheetInfo<T> xlsWorkSheetInfo, OutputStream os, XlsSetupAdapter xlsSetupAdapter) {
+    public static <T> Boolean exportToXlsOutputStream(XlsWorkSheetInfo<T> xlsWorkSheetInfo, OutputStream os) {
         //创建一个工作簿
         HSSFWorkbook workbook = new HSSFWorkbook();
+        XlsSetupAdapter xlsSetupAdapter = xlsWorkSheetInfo.getXlsSetupAdapter();
         if (xlsSetupAdapter != null) {
             xlsSetupAdapter.workBookSetup(workbook);
         }
         //向工作簿添加工作表
-        addToXls(xlsWorkSheetInfo, workbook, xlsSetupAdapter);
+        addToXls(xlsWorkSheetInfo, workbook);
         try {
             workbook.write(os);
             return true;
@@ -88,7 +77,7 @@ public class XlsUtils {
         HSSFWorkbook workbook = new HSSFWorkbook();
         //循环向工作簿添加工作表
         for (XlsWorkSheetInfo xlsWorkSheetInfo : xlsWorkSheetInfoSet) {
-            addToXls(xlsWorkSheetInfo, workbook, null);
+            addToXls(xlsWorkSheetInfo, workbook);
         }
         return saveXlsFile(workbook, saveFileName);
     }
@@ -104,10 +93,7 @@ public class XlsUtils {
         //创建一个工作簿
         HSSFWorkbook workbook = new HSSFWorkbook();
         //循环向工作簿添加工作表
-        for (XlsWorkSheetInfo xlsWorkSheetInfo : xlsWorkSheetInfoList) {
-            addToXls(xlsWorkSheetInfo, workbook, null);
-        }
-        //xlsWorkSheetInfoList.stream().forEach(workbookInfo -> addToXls(workbookInfo, workbook));//有中文乱码
+        xlsWorkSheetInfoList.stream().forEach(workbookInfo -> addToXls(workbookInfo, workbook));//有中文乱码
         try {
             workbook.write(os);
             return true;
@@ -124,13 +110,14 @@ public class XlsUtils {
      * @param workbook
      * @return
      */
-    public static <T> Boolean addToXls(XlsWorkSheetInfo<T> xlsWorkSheetInfo, HSSFWorkbook workbook, XlsSetupAdapter xlsSetupAdapter) {
+    public static <T> Boolean addToXls(XlsWorkSheetInfo<T> xlsWorkSheetInfo, HSSFWorkbook workbook) {
         Class<T> clazz = xlsWorkSheetInfo.getClazz();
         Field[] fields = clazz.getDeclaredFields();
         try {
             //创建工作表
             Sheet sheet = workbook.createSheet(buildSheetName(xlsWorkSheetInfo));
             //预先美化工作表
+            XlsSetupAdapter xlsSetupAdapter = xlsWorkSheetInfo.getXlsSetupAdapter();
             if (xlsSetupAdapter != null) {
                 xlsSetupAdapter.workSheetSetup(sheet);
             }
@@ -140,16 +127,21 @@ public class XlsUtils {
             for (Field field : fields) {
                 //获取字段注解
                 String colName = getXlsColumnName(field);
-                //设置列宽，先设置自动
+                //设置列宽
+                sheet.autoSizeColumn(headColIndex);//先设置自动
                 int colWidth = getXlsColumnWidth(field);
                 if (colWidth >= 0) {
-                    sheet.setColumnWidth(headColIndex, colWidth * CHAR_WIDTH);
+                    //如果设置了注解，就设定为该值pt
+                    sheet.setColumnWidth(headColIndex, (int) ((colWidth + 0.72) * CHAR_WIDTH));
                 } else {
-                    sheet.setColumnWidth(headColIndex, (colName.length() + 2) * CHAR_WIDTH);
+                    //否则按照字符串长度设置
+                    int columnByteLength = colName.trim().getBytes(Charset.forName("GBK")).length;
+                    sheet.setColumnWidth(headColIndex, (int) ((columnByteLength + 0.72) * CHAR_WIDTH));
                 }
                 //给标题栏设置一个背景色
                 HSSFCellStyle cellStyle = workbook.createCellStyle();
                 cellStyle.setFillForegroundColor(IndexedColors.BLUE.index);
+                cellStyle.setAlignment(HorizontalAlignment.CENTER);
                 Cell cell = headRow.createCell(headColIndex);
                 cell.setCellStyle(cellStyle);
 
@@ -222,7 +214,7 @@ public class XlsUtils {
             colName = xlsColumns.value();
         }
         //如果cloName仍为空，则以字段名为列名
-        if (colName == null || "".equals(colName)) {
+        if (colName == null || "".equals(colName.trim())) {
             field.setAccessible(true);
             colName = field.getName();
             field.setAccessible(false);
@@ -261,7 +253,7 @@ public class XlsUtils {
 
     /**
      * 向工作簿添加多张表
-     *
+     * <p>
      * 此方法依赖poi 4.0
      * 因为同事Petter使用3.14进行处理，加之目前此方法暂时不用，故此暂时弃用
      * 待后经过协调在进行处理
@@ -271,13 +263,12 @@ public class XlsUtils {
      * @param workbook
      * @return
      */
-    /*
     public static Boolean addToXls(Set<XlsWorkSheetInfo> workSheetInfoSet, HSSFWorkbook workbook) {
         for (XlsWorkSheetInfo workSheetInfo : workSheetInfoSet) {
             addToXls(workSheetInfo, workbook);
         }
         try {
-            //workbook.write();
+            workbook.write();
             return true;
         } catch (IOException e) {
             e.printStackTrace();
@@ -290,7 +281,6 @@ public class XlsUtils {
         }
         return false;
     }
-    */
 
     /**
      * 从文件读取xls表格内容
@@ -580,10 +570,10 @@ public class XlsUtils {
             if (xlsColumn != null) {
                 colName = xlsColumn.value();
             }
-            if (colName == null || "".equals(colName)) {
+            if (colName == null || "".equals(colName.trim())) {
                 colName = field.getName();
             }
-            if (!headRow.getCell(i).getStringCellValue().equalsIgnoreCase(colName)) {
+            if (!headRow.getCell(i).getStringCellValue().trim().equalsIgnoreCase(colName)) {
                 return false;
             }
         }

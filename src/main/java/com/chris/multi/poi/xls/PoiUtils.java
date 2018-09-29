@@ -154,6 +154,7 @@ public class PoiUtils {
 
     /**
      * 获取字段列名
+     *
      * @param field
      * @return
      */
@@ -413,6 +414,9 @@ public class PoiUtils {
      */
     private static <T> void setValueFromCell(T obj, Field field, HSSFCell cell) {
         String typeName = field.getType().getName();
+        if (cell == null || cell.getStringCellValue() == null || "".equals(cell.getStringCellValue())) {
+            return;
+        }
         try {
             if (int.class.getName().equals(typeName) || Integer.class.getName().equals(typeName)) {
                 field.set(obj, (int) cell.getNumericCellValue());

@@ -1,15 +1,12 @@
 package com.chris.multi.poi.xls;
 
-import org.apache.poi.hssf.usermodel.HSSFCell;
-import org.apache.poi.hssf.usermodel.HSSFRow;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.hssf.usermodel.*;
+import org.apache.poi.ss.usermodel.*;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -21,36 +18,55 @@ import java.util.Set;
  * Explain: Java操作Excel表格的工具
  */
 
-public class PoiUtils {
+public class XlsUtils {
+    private static final int CHAR_WIDTH = 512;
+
     /**
      * 创建一个工作簿，并且添加一张表，写入数据
      *
-     * @param workSheetInfo
+     * @param xlsWorkSheetInfo
      * @param saveFileName
      * @param <T>
      * @return
      */
-    public static <T> Boolean exportToXls(WorkSheetInfo<T> workSheetInfo, String saveFileName) {
+    public static <T> Boolean exportToXls(XlsWorkSheetInfo<T> xlsWorkSheetInfo, String saveFileName) {
         //创建一个工作簿
         HSSFWorkbook workbook = new HSSFWorkbook();
         //向工作簿天机按工作表
-        addToXls(workSheetInfo, workbook);
+        addToXls(xlsWorkSheetInfo, workbook, null);
         return saveXlsFile(workbook, saveFileName);
     }
 
     /**
      * 导出到输出流OutputStream
+     * 不包含设置回调
      *
-     * @param workSheetInfo
+     * @param xlsWorkSheetInfo
      * @param os
      * @param <T>
      * @return
      */
-    public static <T> Boolean exportToXlsOutputStream(WorkSheetInfo<T> workSheetInfo, OutputStream os) {
+    public static <T> Boolean exportToXlsOutputStream(XlsWorkSheetInfo<T> xlsWorkSheetInfo, OutputStream os) {
+        return exportToXlsOutputStream(xlsWorkSheetInfo, os, null);
+    }
+
+    /**
+     * 导出到输出流OutputStream
+     * 包含设置回调
+     *
+     * @param xlsWorkSheetInfo
+     * @param os
+     * @param <T>
+     * @return
+     */
+    public static <T> Boolean exportToXlsOutputStream(XlsWorkSheetInfo<T> xlsWorkSheetInfo, OutputStream os, XlsSetupAdapter xlsSetupAdapter) {
         //创建一个工作簿
         HSSFWorkbook workbook = new HSSFWorkbook();
-        //向工作簿天机按工作表
-        addToXls(workSheetInfo, workbook);
+        if (xlsSetupAdapter != null) {
+            xlsSetupAdapter.workBookSetup(workbook);
+        }
+        //向工作簿添加工作表
+        addToXls(xlsWorkSheetInfo, workbook, xlsSetupAdapter);
         try {
             workbook.write(os);
             return true;
@@ -63,16 +79,16 @@ public class PoiUtils {
     /**
      * 把包含工作表信息的集合写入到xls表格
      *
-     * @param workSheetInfoSet
+     * @param xlsWorkSheetInfoSet
      * @param saveFileName
      * @return
      */
-    public static Boolean exportToXls(Set<WorkSheetInfo> workSheetInfoSet, String saveFileName) {
+    public static Boolean exportToXls(Set<XlsWorkSheetInfo> xlsWorkSheetInfoSet, String saveFileName) {
         //创建一个工作簿
         HSSFWorkbook workbook = new HSSFWorkbook();
         //循环向工作簿添加工作表
-        for (WorkSheetInfo workSheetInfo : workSheetInfoSet) {
-            addToXls(workSheetInfo, workbook);
+        for (XlsWorkSheetInfo xlsWorkSheetInfo : xlsWorkSheetInfoSet) {
+            addToXls(xlsWorkSheetInfo, workbook, null);
         }
         return saveXlsFile(workbook, saveFileName);
     }
@@ -80,18 +96,18 @@ public class PoiUtils {
     /**
      * 导出到输出流OutputStream
      *
-     * @param workSheetInfoList
+     * @param xlsWorkSheetInfoList
      * @param os
      * @return
      */
-    public static Boolean exportToXlsOutputStream(List<WorkSheetInfo> workSheetInfoList, OutputStream os) {
+    public static Boolean exportToXlsOutputStream(List<XlsWorkSheetInfo> xlsWorkSheetInfoList, OutputStream os) {
         //创建一个工作簿
         HSSFWorkbook workbook = new HSSFWorkbook();
         //循环向工作簿添加工作表
-        for (WorkSheetInfo workSheetInfo : workSheetInfoList) {
-            addToXls(workSheetInfo, workbook);
+        for (XlsWorkSheetInfo xlsWorkSheetInfo : xlsWorkSheetInfoList) {
+            addToXls(xlsWorkSheetInfo, workbook, null);
         }
-        //workSheetInfoList.stream().forEach(workbookInfo -> addToXls(workbookInfo, workbook));//有中文乱码
+        //xlsWorkSheetInfoList.stream().forEach(workbookInfo -> addToXls(workbookInfo, workbook));//有中文乱码
         try {
             workbook.write(os);
             return true;
@@ -104,26 +120,45 @@ public class PoiUtils {
     /**
      * 向工作簿添加一张表
      *
-     * @param workSheetInfo
+     * @param xlsWorkSheetInfo
      * @param workbook
      * @return
      */
-    public static <T> Boolean addToXls(WorkSheetInfo<T> workSheetInfo, HSSFWorkbook workbook) {
-        Class<T> clazz = workSheetInfo.getClazz();
+    public static <T> Boolean addToXls(XlsWorkSheetInfo<T> xlsWorkSheetInfo, HSSFWorkbook workbook, XlsSetupAdapter xlsSetupAdapter) {
+        Class<T> clazz = xlsWorkSheetInfo.getClazz();
         Field[] fields = clazz.getDeclaredFields();
         try {
             //创建工作表
-            Sheet sheet = workbook.createSheet(buildSheetName(workSheetInfo));
+            Sheet sheet = workbook.createSheet(buildSheetName(xlsWorkSheetInfo));
+            //预先美化工作表
+            if (xlsSetupAdapter != null) {
+                xlsSetupAdapter.workSheetSetup(sheet);
+            }
             //遍历字段填充表头
             Row headRow = sheet.createRow(0);
             int headColIndex = 0;
             for (Field field : fields) {
                 //获取字段注解
                 String colName = getXlsColumnName(field);
-                headRow.createCell(headColIndex++).setCellValue(colName);
+                //设置列宽，先设置自动
+                int colWidth = getXlsColumnWidth(field);
+                if (colWidth >= 0) {
+                    sheet.setColumnWidth(headColIndex, colWidth * CHAR_WIDTH);
+                } else {
+                    sheet.setColumnWidth(headColIndex, (colName.length() + 2) * CHAR_WIDTH);
+                }
+                //给标题栏设置一个背景色
+                HSSFCellStyle cellStyle = workbook.createCellStyle();
+                cellStyle.setFillForegroundColor(IndexedColors.BLUE.index);
+                Cell cell = headRow.createCell(headColIndex);
+                cell.setCellStyle(cellStyle);
+
+                //写入标题
+                cell.setCellValue(colName);
+                headColIndex++;
             }
             //数据
-            List<T> dataList = workSheetInfo.getDataList();
+            List<T> dataList = xlsWorkSheetInfo.getDataList();
             if (dataList != null) {
                 for (int rowIndex = 1, len = dataList.size(); rowIndex <= len; rowIndex++) {
                     Object obj = dataList.get(rowIndex - 1);
@@ -133,6 +168,10 @@ public class PoiUtils {
                     for (Field field : fields) {
                         field.setAccessible(true);
                         Object value = field.get(obj);
+                        if (value == null) {
+                            colIndex++;
+                            continue;//空值不写
+                        }
                         if ((value instanceof Integer) ||
                                 (value instanceof Long) ||
                                 (value instanceof Double) ||
@@ -150,6 +189,23 @@ public class PoiUtils {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /**
+     * 设置表的列宽
+     *
+     * @param field
+     * @return
+     */
+    private static int getXlsColumnWidth(Field field) {
+        XlsColumn xlsColumns = field.getAnnotation(XlsColumn.class);
+        int width = -1;//列宽
+        if (xlsColumns != null) {
+            //如果注解不为空且width有值，将width作为列宽
+            width = xlsColumns.width();
+        }
+        //如果最终返回值为-1，将不娶设置列宽，由Excel自己设置
+        return width;
     }
 
     /**
@@ -175,31 +231,53 @@ public class PoiUtils {
     }
 
     /**
+     * 该字段对应的列是否规定必填
+     *
+     * @param field
+     * @return
+     */
+    private static boolean isRequired(Field field) {
+        XlsColumn xlsColumns = field.getAnnotation(XlsColumn.class);
+        boolean required = false;//默认并未规定必填
+        if (xlsColumns != null) {
+            //如果注解不为空且width有值，将width作为列宽
+            required = xlsColumns.required();
+        }
+        return required;
+    }
+
+    /**
      * 创建工作表的名称
      *
-     * @param workSheetInfo
+     * @param xlsWorkSheetInfo
      * @param <T>
      * @return
      */
-    private static <T> String buildSheetName(WorkSheetInfo<T> workSheetInfo) {
-        int pageIndex = workSheetInfo.getPageIndex();
-        String title = workSheetInfo.getTitle();
+    private static <T> String buildSheetName(XlsWorkSheetInfo<T> xlsWorkSheetInfo) {
+        int pageIndex = xlsWorkSheetInfo.getPageIndex();
+        String title = xlsWorkSheetInfo.getTitle();
         return pageIndex == -1 ? title : title + "(" + pageIndex + ")";
     }
 
     /**
      * 向工作簿添加多张表
      *
+     * 此方法依赖poi 4.0
+     * 因为同事Petter使用3.14进行处理，加之目前此方法暂时不用，故此暂时弃用
+     * 待后经过协调在进行处理
+     * 出错的代码注释掉
+     *
      * @param workSheetInfoSet
      * @param workbook
      * @return
      */
-    public static Boolean addToXls(Set<WorkSheetInfo> workSheetInfoSet, HSSFWorkbook workbook) {
-        for (WorkSheetInfo workSheetInfo : workSheetInfoSet) {
+    /*
+    public static Boolean addToXls(Set<XlsWorkSheetInfo> workSheetInfoSet, HSSFWorkbook workbook) {
+        for (XlsWorkSheetInfo workSheetInfo : workSheetInfoSet) {
             addToXls(workSheetInfo, workbook);
         }
         try {
-            workbook.write();
+            //workbook.write();
             return true;
         } catch (IOException e) {
             e.printStackTrace();
@@ -212,6 +290,7 @@ public class PoiUtils {
         }
         return false;
     }
+    */
 
     /**
      * 从文件读取xls表格内容
@@ -414,10 +493,11 @@ public class PoiUtils {
      */
     private static <T> void setValueFromCell(T obj, Field field, HSSFCell cell) {
         String typeName = field.getType().getName();
-        if (cell == null || cell.getStringCellValue() == null || "".equals(cell.getStringCellValue())) {
+        if (cell == null) {
             return;
         }
         try {
+
             if (int.class.getName().equals(typeName) || Integer.class.getName().equals(typeName)) {
                 field.set(obj, (int) cell.getNumericCellValue());
                 return;
@@ -443,15 +523,25 @@ public class PoiUtils {
                 field.set(obj, cell.getBooleanCellValue());
                 return;
             }
+
             if (Date.class.getName().equals(typeName)) {
                 field.set(obj, cell.getDateCellValue());
                 return;
             }
+            if (Timestamp.class.getName().equals(typeName)) {
+                field.set(obj, new Timestamp(cell.getDateCellValue().getTime()));
+                return;
+            }
+            if (Instant.class.getName().equals(typeName)) {
+                field.set(obj, Instant.ofEpochMilli(cell.getDateCellValue().getTime()));
+                return;
+            }
             //如果上面都不匹配，就全部按照字符串进行读取
+            cell.setCellType(CellType.STRING);//强转为字符串类型 poi 4.0
             field.set(obj, cell.getStringCellValue());
             return;
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            //e.printStackTrace();
         }
 
     }

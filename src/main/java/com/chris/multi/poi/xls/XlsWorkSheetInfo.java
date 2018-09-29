@@ -7,7 +7,7 @@ import java.util.List;
  * 2018/09/17
  * Explain: 工作表数据信息
  */
-public class WorkSheetInfo<T> {
+public class XlsWorkSheetInfo<T> {
     private String title;//工作表名称
     private int pageIndex = -1;//分页的页码 不设置则为-1
     private String author;//作者
@@ -17,21 +17,21 @@ public class WorkSheetInfo<T> {
 
     private static final int MAXLINES = 65534;
 
-    private WorkSheetInfo() {
+    private XlsWorkSheetInfo() {
 
     }
 
-    public static <T> WorkSheetInfo get(Class<T> clazz) {
-        WorkSheetInfo<T> workSheetInfo = new WorkSheetInfo<>();
-        workSheetInfo.clazz = clazz;
-        return workSheetInfo;
+    public static <T> XlsWorkSheetInfo get(Class<T> clazz) {
+        XlsWorkSheetInfo<T> xlsWorkSheetInfo = new XlsWorkSheetInfo<>();
+        xlsWorkSheetInfo.clazz = clazz;
+        return xlsWorkSheetInfo;
     }
 
     public String getTitle() {
         return title;
     }
 
-    public WorkSheetInfo setTitle(String title) {
+    public XlsWorkSheetInfo setTitle(String title) {
         this.title = title;
         return this;
     }
@@ -40,7 +40,7 @@ public class WorkSheetInfo<T> {
         return pageIndex;
     }
 
-    public WorkSheetInfo setPageIndex(int pageIndex) {
+    public XlsWorkSheetInfo setPageIndex(int pageIndex) {
         this.pageIndex = pageIndex;
         return this;
     }
@@ -49,7 +49,7 @@ public class WorkSheetInfo<T> {
         return author;
     }
 
-    public WorkSheetInfo setAuthor(String author) {
+    public XlsWorkSheetInfo setAuthor(String author) {
         this.author = author;
         return this;
     }
@@ -58,7 +58,7 @@ public class WorkSheetInfo<T> {
         return time;
     }
 
-    public WorkSheetInfo setTime(Long time) {
+    public XlsWorkSheetInfo setTime(Long time) {
         this.time = time;
         return this;
     }
@@ -67,7 +67,7 @@ public class WorkSheetInfo<T> {
         return dataList;
     }
 
-    public WorkSheetInfo setDataList(List<T> dataList) {
+    public XlsWorkSheetInfo setDataList(List<T> dataList) {
         if (dataList.size() > getMaxLines()) {
             throw new RuntimeException("One page can not contains data than " + MAXLINES + "lines.");
         }
@@ -79,7 +79,7 @@ public class WorkSheetInfo<T> {
         return clazz;
     }
 
-    public WorkSheetInfo setClazz(Class<T> clazz) {
+    public XlsWorkSheetInfo setClazz(Class<T> clazz) {
         this.clazz = clazz;
         return this;
     }

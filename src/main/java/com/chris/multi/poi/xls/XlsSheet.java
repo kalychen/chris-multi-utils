@@ -13,6 +13,8 @@ import java.lang.annotation.*;
 @Inherited
 public @interface XlsSheet {
     String value();
-    int maxLines() default 65534;
-    String ext() default "-000";
+
+    int maxLines() default 65534;//单表支持的最大数据行数
+
+    String ext() default "-000";//分表后缀格式
 }

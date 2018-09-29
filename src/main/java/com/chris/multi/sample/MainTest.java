@@ -1,7 +1,7 @@
 package com.chris.multi.sample;
 
-import com.chris.multi.poi.xls.PoiUtils;
-import com.chris.multi.poi.xls.WorkSheetInfo;
+import com.chris.multi.poi.xls.XlsUtils;
+import com.chris.multi.poi.xls.XlsWorkSheetInfo;
 import com.chris.multi.sample.model.StuModel;
 import com.chris.multi.sample.model.UserModel;
 
@@ -27,17 +27,17 @@ public class MainTest {
     }
 
     private static void importXls() {
-        List<StuModel> stuModels = PoiUtils.readFromXlsFile(saveFileName, StuModel.class);
+        List<StuModel> stuModels = XlsUtils.readFromXlsFile(saveFileName, StuModel.class);
         for (StuModel stu : stuModels) {
             System.out.println(stu.getId() + "-->" + stu.getName() + "-->" + stu.getGrade() + "-->" + stu.getSchoolClass() + "-->" + stu.getEnglishScore());
         }
     }
 
     private static void exportMultiSheet() {
-        List<WorkSheetInfo> workSheetInfoList = new ArrayList<>();
-        workSheetInfoList.add(getStuInfo(1));
-        workSheetInfoList.add(getStuInfo(2));
-        workSheetInfoList.add(getUserInfo());
+        List<XlsWorkSheetInfo> xlsWorkSheetInfoList = new ArrayList<>();
+        xlsWorkSheetInfoList.add(getStuInfo(1));
+        xlsWorkSheetInfoList.add(getStuInfo(2));
+        xlsWorkSheetInfoList.add(getUserInfo());
         OutputStream os = null;
         File file = new File(saveFileName);
         if (!file.getParentFile().exists()) {
@@ -46,7 +46,7 @@ public class MainTest {
         try {
 
             os = new FileOutputStream(file);
-            PoiUtils.exportToXlsOutputStream(workSheetInfoList, os);
+            XlsUtils.exportToXlsOutputStream(xlsWorkSheetInfoList, os);
             os.flush();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -62,31 +62,31 @@ public class MainTest {
 
     }
 
-    private static WorkSheetInfo<StuModel> getStuInfo(int pageIndex) {
+    private static XlsWorkSheetInfo<StuModel> getStuInfo(int pageIndex) {
 
         List<StuModel> stuList = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
             stuList.add(new StuModel(i, "学生 page " + pageIndex +"->"+ i, "三年级", "五班", new Random().nextInt(100)));
         }
-        WorkSheetInfo<StuModel> workSheetInfo = WorkSheetInfo.get(StuModel.class)
+        XlsWorkSheetInfo<StuModel> xlsWorkSheetInfo = XlsWorkSheetInfo.get(StuModel.class)
                 .setTitle("学生表")
                 .setPageIndex(pageIndex)
                 .setTime(System.currentTimeMillis());
 //                .setDataList(stuList);
 
-        return workSheetInfo;
+        return xlsWorkSheetInfo;
     }
 
-    private static WorkSheetInfo<UserModel> getUserInfo() {
+    private static XlsWorkSheetInfo<UserModel> getUserInfo() {
         List<UserModel> userList = new ArrayList<>();
         for (int i = 1; i <= 100; i++) {
             userList.add(new UserModel(i, "name " + i, new Random().nextInt(100), "addr " + i));
         }
-        WorkSheetInfo<UserModel> workSheetInfo = WorkSheetInfo.get(UserModel.class)
+        XlsWorkSheetInfo<UserModel> xlsWorkSheetInfo = XlsWorkSheetInfo.get(UserModel.class)
                 .setTitle("用户表")
                 .setTime(System.currentTimeMillis());
 //                .setDataList(userList);
 
-        return workSheetInfo;
+        return xlsWorkSheetInfo;
     }
 }
